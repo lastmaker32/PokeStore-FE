@@ -1,24 +1,22 @@
 import api from '../lib/api';
 import { Product, Category } from '../types';
 
-export const catalogService = {
-  getProducts: async (): Promise<Product[]> => {
+export const getProducts = async (): Promise<Product[]> => {
+  try {
     const response = await api.get<Product[]>('/products');
     return response.data;
-  },
+  } catch (error) {
+    console.error('Error fetching products:', error);
+    throw error;
+  }
+};
 
-  getProductById: async (productId: string): Promise<Product> => {
-    const response = await api.get<Product>(`/products/${productId}`);
-    return response.data;
-  },
-
-  getCategories: async (): Promise<Category[]> => {
+export const getCategories = async (): Promise<Category[]> => {
+  try {
     const response = await api.get<Category[]>('/categories');
     return response.data;
-  },
-
-  getCategoryById: async (categoryId: string): Promise<Category> => {
-    const response = await api.get<Category>(`/categories/${categoryId}`);
-    return response.data;
-  },
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    throw error;
+  }
 };

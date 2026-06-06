@@ -1,25 +1,34 @@
 import Link from 'next/link';
 
+export const metadata = {
+  title: 'Checkout | PokeStore',
+  description: 'Complete your purchase at PokeStore.',
+};
+
 export default function CheckoutLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <body className="bg-off-white text-dark-slate">
-        <header className="bg-pure-white shadow-sm sticky top-0 z-50">
-          <nav className="container mx-auto p-4 flex items-center justify-center">
-            <Link href="/" className="text-2xl font-bold tracking-tight text-dark-slate">
-              PokeStore
-            </Link>
-          </nav>
-        </header>
-        <main className="min-h-screen flex flex-col items-center justify-between p-6 sm:p-12">
-          {children}
-        </main>
-        {/* No footer in checkout layout to reduce distractions */}
-      </body>
-    </html>
+    <div className="flex flex-col min-h-screen bg-off-white">
+      {/* Minimal Header for Checkout */}
+      <header className="bg-white shadow-sm p-4 sticky top-0 z-10">
+        <nav className="container mx-auto flex justify-center">
+          <Link href="/" className="text-2xl font-bold text-poke-red">
+            PokeStore
+          </Link>
+        </nav>
+      </header>
+
+      <main className="flex-grow container mx-auto p-4">
+        {children}
+      </main>
+
+      {/* Optional: A minimal footer for checkout, or no footer */}
+      <footer className="bg-gray-100 text-gray-600 p-4 text-center text-sm">
+        &copy; {new Date().getFullYear()} PokeStore.
+      </footer>
+    </div>
   );
 }

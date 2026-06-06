@@ -5,18 +5,15 @@ export interface Product {
   price: number;
   imageUrl: string;
   categoryId: string;
-  categoryName: string;
+  // Add any other relevant product properties
 }
 
 export interface Category {
   id: string;
   name: string;
+  // Add any other relevant category properties
 }
 
-export interface CartItem {
-  productId: string;
-  name: string;
-  price: number;
+export interface CartItem extends Product {
   quantity: number;
-  imageUrl: string;
 }

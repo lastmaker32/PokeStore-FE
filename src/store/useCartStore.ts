@@ -5,45 +5,52 @@ import { CartItem } from '../types';
 interface CartState {
   cartItems: CartItem[];
   addItem: (item: CartItem) => void;
-  removeItem: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeItem: (itemId: string) => void;
+  updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
+  getTotalItems: () => number;
+  getTotalPrice: () => number;
 }
 
 export const useCartStore = create<CartState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       cartItems: [],
-      addItem: (item) =>
+      addItem: (item) => {
         set((state) => {
-          const existingItem = state.cartItems.find((ci) => ci.productId === item.productId);
+          const existingItem = state.cartItems.find((cartItem) => cartItem.id === item.id);
           if (existingItem) {
             return {
-              cartItems: state.cartItems.map((ci) =>
-                ci.productId === item.productId
-                  ? { ...ci, quantity: ci.quantity + item.quantity }
-                  : ci
+              cartItems: state.cartItems.map((cartItem) =>
+                cartItem.id === item.id
+                  ? { ...cartItem, quantity: cartItem.quantity + item.quantity }
+                  : cartItem
               ),
             };
           } else {
-            return { cartItems: [...state.cartItems, item] };
+            return { cartItems: [...state.cartItems, { ...item, quantity: item.quantity || 1 }] };
           }
-        }),
-      removeItem: (productId) =>
+        });
+      },
+      removeItem: (itemId) => {
         set((state) => ({
-          cartItems: state.cartItems.filter((item) => item.productId !== productId),
-        })),
-      updateQuantity: (productId, quantity) =>
+          cartItems: state.cartItems.filter((cartItem) => cartItem.id !== itemId),
+        }));
+      },
+      updateQuantity: (itemId, quantity) => {
         set((state) => ({
-          cartItems: state.cartItems.map((item) =>
-            item.productId === productId ? { ...item, quantity: quantity } : item
+          cartItems: state.cartItems.map((cartItem) =>
+            cartItem.id === itemId ? { ...cartItem, quantity: quantity } : cartItem
           ),
-        })),
+        }));
+      },
       clearCart: () => set({ cartItems: [] }),
+      getTotalItems: () => get().cartItems.reduce((total, item) => total + item.quantity, 0),
+      getTotalPrice: () => get().cartItems.reduce((total, item) => total + item.price * item.quantity, 0),
     }),
     {
       name: 'pokestore-cart-storage', // unique name
-      storage: createJSONStorage(() => localStorage), // use localStorage for persistence
+      storage: createJSONStorage(() => localStorage), // (optional) by default, 'localStorage' is used
     }
   )
 );

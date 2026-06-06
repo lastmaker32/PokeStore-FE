@@ -1,125 +1,197 @@
-"use client";
+'use client';
 
-import { useState, FormEvent } from 'react';
-import { useCartStore } from '@/store/useCartStore';
+import { useState } from 'react';
+import { useCartStore } from '../../store/useCartStore';
 import Image from 'next/image';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation'; // Import useRouter
+import { submitOrder, OrderPayload, ShippingInfo } from '../../services/checkoutService'; // Import submitOrder and types
 
-export default function CheckoutPage() {
-  const { cartItems, clearCart } = useCartStore();
-  const [shippingInfo, setShippingInfo] = useState({
+const TAX_RATE = 0.08; // 8% tax
+
+const CheckoutPage = () => {
+  const router = useRouter(); // Initialize useRouter
+  const { cartItems, getTotalPrice, clearCart } = useCartStore();
+  const [shippingInfo, setShippingInfo] = useState<ShippingInfo>({
     name: '',
     address: '',
     city: '',
     zip: '',
   });
+  const [loading, setLoading] = useState(false); // Add loading state
 
-  const subtotal = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-  const taxRate = 0.08; // 8% tax
-  const tax = subtotal * taxRate;
+  const subtotal = getTotalPrice();
+  const tax = subtotal * TAX_RATE;
   const total = subtotal + tax;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setShippingInfo((prev) => ({ ...prev, [name]: value }));
+    setShippingInfo((prevInfo) => ({ ...prevInfo, [name]: value }));
   };
 
-  const handlePlaceOrder = (e: FormEvent) => {
+  const handlePlaceOrder = async (e: React.FormEvent) => {
     e.preventDefault();
-    const orderData = {
+    setLoading(true); // Set loading to true when order is being placed
+
+    const orderPayload: OrderPayload = {
       shippingInfo,
-      cartItems,
-      subtotal,
-      tax,
-      total,
+      cartItems: cartItems.map(item => ({
+        productId: item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+      })),
+      subtotal: subtotal,
+      tax: tax,
+      total: total,
       orderDate: new Date().toISOString(),
     };
-    console.log('Placing Order:', orderData);
-    // TODO: Integrate with .NET OrderController and Payment Gateway in Phase 4
-    alert('Order Placed! (Check console for details)');
-    clearCart(); // Clear cart after placing order
+
+    try {
+      const response = await submitOrder(orderPayload);
+      console.log('Order submitted successfully:', response);
+      alert('Order placed successfully! Redirecting to success page.');
+      router.push(`/checkout/success?orderId=${response.orderId}`); // Redirect to success page
+    } catch (error) {
+      console.error('Failed to place order:', error);
+      alert('Failed to place order. Please try again.');
+    } finally {
+      setLoading(false); // Set loading to false regardless of success or failure
+    }
   };
 
-  return (
-    <div className="container mx-auto px-4 py-8 bg-off-white min-h-screen">
-      <h1 className="text-4xl font-bold text-dark-slate mb-8 text-center">Checkout</h1>
+  if (cartItems.length === 0) {
+    return (
+      <div className="text-center py-20">
+        <h1 className="text-3xl font-bold text-gray-800 mb-4">Your cart is empty!</h1>
+        <p className="text-lg text-gray-600 mb-8">Please add items to your cart before checking out.</p>
+        <Link href="/catalog" className="bg-poke-blue text-white py-3 px-6 rounded-xl hover:bg-blue-700 transition-colors duration-200 text-lg font-medium">
+          Continue Shopping
+        </Link>
+      </div>
+    );
+  }
 
-      <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Shipping Information */}
-        <div className="bg-pure-white rounded-2xl shadow-soft p-6">
-          <h2 className="text-2xl font-semibold text-dark-slate mb-6">Shipping Information</h2>
-          <div className="space-y-4">
+  return (
+    <div className="container mx-auto p-4">
+      <h1 className="text-4xl font-bold text-poke-red mb-8">Checkout</h1>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Shipping Information Form */}
+        <div className="bg-white rounded-2xl shadow-md p-6">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Shipping Information</h2>
+          <form onSubmit={handlePlaceOrder} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-dark-slate text-sm font-medium mb-1">Full Name</label>
+              <label htmlFor="name" className="block text-gray-700 text-sm font-bold mb-2">
+                Full Name
+              </label>
               <input
                 type="text"
                 id="name"
                 name="name"
                 value={shippingInfo.name}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-poke-blue"
+                className="shadow-sm appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-poke-blue"
                 required
               />
             </div>
             <div>
-              <label htmlFor="address" className="block text-dark-slate text-sm font-medium mb-1">Address</label>
+              <label htmlFor="address" className="block text-gray-700 text-sm font-bold mb-2">
+                Address
+              </label>
               <input
                 type="text"
                 id="address"
                 name="address"
                 value={shippingInfo.address}
                 onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-poke-blue"
+                className="shadow-sm appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-poke-blue"
                 required
               />
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="city" className="block text-dark-slate text-sm font-medium mb-1">City</label>
-                <input
-                  type="text"
-                  id="city"
-                  name="city"
-                  value={shippingInfo.city}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-poke-blue"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="zip" className="block text-dark-slate text-sm font-medium mb-1">Zip Code</label>
-                <input
-                  type="text"
-                  id="zip"
-                  name="zip"
-                  value={shippingInfo.zip}
-                  onChange={handleInputChange}
-                  className="w-full p-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-poke-blue"
-                  required
-                />
-              </div>
+            <div>
+              <label htmlFor="city" className="block text-gray-700 text-sm font-bold mb-2">
+                City
+              </label>
+              <input
+                type="text"
+                id="city"
+                name="city"
+                value={shippingInfo.city}
+                onChange={handleInputChange}
+                className="shadow-sm appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-poke-blue"
+                required
+              />
             </div>
-          </div>
+            <div>
+              <label htmlFor="zip" className="block text-gray-700 text-sm font-bold mb-2">
+                Zip Code
+              </label>
+              <input
+                type="text"
+                id="zip"
+                name="zip"
+                value={shippingInfo.zip}
+                onChange={handleInputChange}
+                className="shadow-sm appearance-none border rounded-xl w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-poke-blue"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="mt-6 w-full bg-poke-red text-white py-3 px-6 rounded-xl hover:bg-red-700 transition-colors duration-200 text-lg font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={loading}
+            >
+              {loading ? 'Processing...' : 'Place Order'}
+            </button>
+          </form>
         </div>
 
         {/* Order Summary */}
-        <div className="bg-pure-white rounded-2xl shadow-soft p-6 h-fit">
-          <h2 className="text-2xl font-semibold text-dark-slate mb-6">Order Summary</h2>
-          <div className="space-y-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-md p-6 h-fit">
+          <h2 className="text-2xl font-semibold text-gray-800 mb-6">Order Summary</h2>
+          <div className="space-y-4">
             {cartItems.map((item) => (
-              <div key={item.productId} className="flex items-center space-x-3">
-                <div className="relative w-16 h-16 flex-shrink-0 bg-off-white rounded-lg overflow-hidden">
+              <div key={item.id} className="flex items-center">
+                <div className="relative w-16 h-16 mr-4 flex-shrink-0">
                   <Image
-                    src={item.imageUrl}
+                    src={item.imageUrl || '/placeholder-pokemon.png'}
                     alt={item.name}
-                    fill
-                    style={{ objectFit: 'contain' }}
-                    sizes="64px"
+                    layout="fill"
+                    objectFit="contain"
+                    className="rounded-lg border border-gray-100"
                   />
                 </div>
                 <div className="flex-grow">
-                  <p className="font-semibold text-dark-slate line-clamp-1">{item.name}</p>
-                  <p className="text-sm text-gray-600">${item.price.toFixed(2)} x {item.quantity}</p>
+                  <p className="text-gray-900 font-medium">{item.name}</p>
+                  <p className="text-gray-600 text-sm">${item.price.toFixed(2)} x {item.quantity}</p>
                 </div>
+                <span className="font-semibold text-gray-800">
+                  ${(item.price * item.quantity).toFixed(2)}
+                </span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-gray-200 mt-6 pt-6 space-y-3 text-gray-700">
+            <div className="flex justify-between text-lg">
+              <span>Subtotal:</span>
+              <span>${subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-lg">
+              <span>Tax (8%):</span>
+              <span>${tax.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-2xl font-bold text-poke-red pt-3">
+              <span>Total:</span>
+              <span>${total.toFixed(2)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default CheckoutPage;
                 <p className="font-bold text-dark-slate">${(item.price * item.quantity).toFixed(2)}</p>
               </div>
             ))}
