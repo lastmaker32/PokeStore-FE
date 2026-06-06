@@ -1,0 +1,22 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-poke-red: #ee1515;
+  --color-poke-blue: #2a75bb;
+  --color-poke-yellow: #ffcb05;
+  --color-off-white: #f8f9fa;
+  --color-pure-white: #ffffff;
+  --color-dark-slate: #1e293b;
+}
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+
+  body {
+    @apply text-dark-slate bg-off-white;
+  }
+}
